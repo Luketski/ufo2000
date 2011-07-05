@@ -161,6 +161,7 @@ bool SkinFeature::feat_placement_exists(const char *property_name)
     // Enter [specific feature] table
     lua_pushstring(L, m_feature);
     lua_gettable(L, -2);
+    printf ("m_feature = %s\n", m_feature);
     ASSERT(lua_istable(L, -1));
     // Enter [Placement] table
     lua_pushstring(L, "Placement");

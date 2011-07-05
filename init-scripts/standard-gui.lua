@@ -163,6 +163,20 @@ AddPanel {
             Bg_color_active = {0,73,140},
             Background_active = png_image("$(ufo2000)/arts/menu_button_bg.png"),
         },
+        ButtonExportReplay = {
+            Placement = {
+                Top = {3383, 0},
+                Left = {6750, 0},
+                Width = {2813, 0},
+                Height = {350, 0}
+            },
+            Font = "small",
+            Color = {255,255,255},
+            Color_active = {255,255,255},
+            Bg_color = {0,0,0},
+            Bg_color_active = {0,73,140},
+            Background_active = png_image("$(ufo2000)/arts/menu_button_bg.png"),
+        },
         ButtonOptions = {
             Placement = {
                 Top = {3900, 0},

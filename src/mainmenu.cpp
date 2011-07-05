@@ -200,6 +200,7 @@ int do_mainmenu()
     button_list[MAINMENU_GEOSCAPE] = "ButtonGeoscape";
     button_list[MAINMENU_LOADGAME] = "ButtonLoadGame";
     button_list[MAINMENU_SHOW_REPLAY] = "ButtonLoadReplay";
+    button_list[MAINMENU_EXPORT_REPLAY] = "ButtonExportReplay";
     button_list[MAINMENU_OPTIONS] = "ButtonOptions";
     button_list[MAINMENU_ABOUT] = "ButtonAbout";
     button_list[MAINMENU_TIP_OF_DAY] = "ButtonTipOfDay";
@@ -245,6 +246,7 @@ int do_mainmenu()
     the_dialog[MAINMENU_GEOSCAPE].dp    = (void *) _("show geoscape demo");
     the_dialog[MAINMENU_LOADGAME].dp    = (void *) _("load saved game");
     the_dialog[MAINMENU_SHOW_REPLAY].dp = (void *) _("load a replay");
+    the_dialog[MAINMENU_EXPORT_REPLAY].dp = (void *) _("export a replay");
     the_dialog[MAINMENU_OPTIONS].dp     = (void *) _("options");
     the_dialog[MAINMENU_ABOUT].dp       = (void *) _("about");
     the_dialog[MAINMENU_TIP_OF_DAY].dp  = (void *) _("tip of the day");
