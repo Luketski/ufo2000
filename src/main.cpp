@@ -3024,6 +3024,15 @@ int main(int argc, char *argv[])
                 case MAINMENU_SHOW_REPLAY:
                     start_loadreplay();
                     break;
+                case MAINMENU_EXPORT_REPLAY: {
+                        std::string filename = gui_file_select(SCREEN_W / 2, SCREEN_H / 2, 
+                            _("Export replay (*.webm file)"), F("$(home)"), "webm", true);
+                
+                        if (!filename.empty ()) {
+                            printf ("Export replay as: %s\n", filename.c_str ());
+                        }
+                    }
+                    break;
                 case MAINMENU_OPTIONS:
                     configure();
                     break;
