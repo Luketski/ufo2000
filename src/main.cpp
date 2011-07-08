@@ -2850,6 +2850,72 @@ game have been played before. I don't know how to fix it in other way.*/
 
 
 /**
+ * Dirty function which starts the export of a replay of the game
+ */
+void start_exportreplay ()
+{
+    /* It fixes existing problem with crash when game is loaded after some other 
+    game have been played before. I don't know how to fix it in other way.*/
+    /* TBD
+    win = 0; loss = 0; 
+
+    HOST = 0;
+    net->gametype = GAME_TYPE_REPLAY;
+
+    install_timers(speed_unit, speed_bullet, speed_mapscroll);
+
+    */
+
+    reset_video();
+    clear_to_color(screen, COLOR_BLACK1);
+
+    char path[1000]; *path = 0;
+
+    
+    // choose replay file to load
+    
+    std::string load_filename = gui_file_select(SCREEN_W / 2, SCREEN_H / 2, 
+        _("Load a replay for export (*.replay files)"), F("$(home)"), "replay");
+        
+    if (load_filename.empty()) {
+        alert( "", _("No saved replays found!"), "", _("OK"), NULL, 0, 0);
+        return;
+    }
+    
+
+    // choose export file to write
+    // TODO: add a way for the gui file select dialog edit box to be filled with a preset value
+
+    std::string export_filename = gui_file_select(SCREEN_W / 2, SCREEN_H / 2, 
+        _("Save exported replay to file (*.webm file)"), F("$(home)"), "webm", true);
+
+    if (!export_filename.empty ()) {
+        printf ("Export replay as: %s\n", export_filename.c_str ());
+    }
+    
+    
+    /*
+    if (!loadreplay(filename.c_str())) {
+        alert( "", _("Replay is invalid!"), _("(Probably it was saved by incompatible version)."), _("OK"), NULL, 0, 0);
+        return;
+    }
+    
+    battle_report( "# %s: %d\n", _("START REPLAY"), turn );
+
+    inithotseatgame();
+
+    DONE = 0;
+
+    MODE = WATCH;
+    sel_man = NULL;
+
+    gameloop();
+    closegame();
+    */
+}
+
+
+/**
  * Test / Debug
  */
 //! Test: Draw rectangles in all colors as background, 
@@ -3024,14 +3090,8 @@ int main(int argc, char *argv[])
                 case MAINMENU_SHOW_REPLAY:
                     start_loadreplay();
                     break;
-                case MAINMENU_EXPORT_REPLAY: {
-                        std::string filename = gui_file_select(SCREEN_W / 2, SCREEN_H / 2, 
-                            _("Export replay (*.webm file)"), F("$(home)"), "webm", true);
-                
-                        if (!filename.empty ()) {
-                            printf ("Export replay as: %s\n", filename.c_str ());
-                        }
-                    }
+                case MAINMENU_EXPORT_REPLAY:
+                    start_exportreplay ();
                     break;
                 case MAINMENU_OPTIONS:
                     configure();
