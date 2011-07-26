@@ -3,6 +3,8 @@
 
 #include "video_conversion.h"
 
+#include "vpx_encoding.h"
+
 
 
 
@@ -14,41 +16,47 @@
 
 
 /*================================== RGB-YUV =================================*/
-void rgb_to_yuv(float r[8][8],float g[8][8],float b[8][8],float y[8][8],float u[8][8],float v[8][8])
+void rgb_to_yuv (float r[8][8], float g[8][8], float b[8][8], float y[8][8], float u[8][8], float v[8][8])
 {
-int i,j;
+    int i,j;
 
-for ( i=0 ; i<8 ; i++ ){
-  for ( j=0 ; j<8 ; j++ ){
-    y[i][j]= 0.299 *r[i][j]+0.587 *g[i][j]+0.114 *b[i][j]      ;
-    u[i][j]=-0.1687*r[i][j]-0.3313*g[i][j]+0.5   *b[i][j]+128;
-    v[i][j]= 0.5   *r[i][j]-0.4187*g[i][j]-0.0813*b[i][j]+128;
-   }
- }
+    for ( i=0 ; i<8 ; i++ ){
+        for ( j=0 ; j<8 ; j++ ){
+            y[i][j]= 0.299 *r[i][j]+0.587 *g[i][j]+0.114 *b[i][j]      ;
+            u[i][j]=-0.1687*r[i][j]-0.3313*g[i][j]+0.5   *b[i][j]+128;
+            v[i][j]= 0.5   *r[i][j]-0.4187*g[i][j]-0.0813*b[i][j]+128;
+        }
+    }
 }
 
 
 
 /*================================== YUV-RGB =================================*/
-void yuv_to_rgb(float y[8][8],float u[8][8],float v[8][8],float r[8][8],float g[8][8],float b[8][8])
+void yuv_to_rgb (float y[8][8], float u[8][8], float v[8][8], float r[8][8], float g[8][8], float b[8][8])
 {
-int i,j;
+    int i,j;
 
-for ( i=0 ; i<8 ; i++ ){
-  for ( j=0 ; j<8 ; j++ ){
-    r[i][j]=y[i][j]			 +1.402  *(v[i][j]-128);
-    g[i][j]=y[i][j]-0.34414*(u[i][j]-128)-0.71414*(v[i][j]-128);
-    b[i][j]=y[i][j]+1.772  *(u[i][j]-128)		       ;
-   }
- }
+    for ( i=0 ; i<8 ; i++ ){
+        for ( j=0 ; j<8 ; j++ ){
+            r[i][j]=y[i][j]			 +1.402  *(v[i][j]-128);
+            g[i][j]=y[i][j]-0.34414*(u[i][j]-128)-0.71414*(v[i][j]-128);
+            b[i][j]=y[i][j]+1.772  *(u[i][j]-128)		       ;
+        }
+    }
 }
 
 
 
-static void rgb__to__yv12 (/*char * raw_rgb,*/ unsigned char * raw_yv12)
+/**
+*
+*  saves the pixels from the screen to the 'raw_yv12' buffer as yv12 pixels
+*  it uses the Allegro getpixel() function, and acquire_screen () must be called before using this function
+*
+*/
+void rgb__to__yv12 (BITMAP * screen, unsigned char * raw_yv12, unsigned long image_width, unsigned long image_height)
 {
-	unsigned long image_height = ivf.height;
-	unsigned long image_width = ivf.width;
+	//unsigned long image_height = vpx->height; // vpx = global vpx_config struct defined in vpx_encoding.h, and initialized with init_vpx_encoder()
+	//unsigned long image_width = vpx->width;
 	unsigned long rowbytes = image_width * 3; // FIXME: don't assume this
 	
 	
@@ -91,7 +99,7 @@ static void rgb__to__yv12 (/*char * raw_rgb,*/ unsigned char * raw_yv12)
 	int pixel;
 	
 	// using allegro
-	acquire_screen ();
+	//acquire_screen ();
 	
 	for (bx = 0; bx < blocks_x; bx++)
 	{
@@ -171,7 +179,7 @@ static void rgb__to__yv12 (/*char * raw_rgb,*/ unsigned char * raw_yv12)
 	}
 	
 	// using allegro
-	release_screen ();
+	//release_screen ();
 
 	#undef BLOCK_SIZE
 }

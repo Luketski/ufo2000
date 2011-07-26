@@ -8,7 +8,7 @@
 #include "webm_writer.h"
 
 
-#define DEBUG 1
+//#define DEBUG 1
 
 
 // reference: http://matroska.org/technical/diagram/index.html
