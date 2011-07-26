@@ -43,6 +43,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "mainmenu.h"
 #include "editor.h"
 #include "video.h"
+#include "video_conversion.h"
 #include "keys.h"
 #include "crc32.h"
 #include "music.h"
@@ -2166,7 +2167,7 @@ void view_level_down()
 /**
  * Main loop of the tactical part of the game
  */
-void gameloop()
+void gameloop (bool exporting_replay /*= false*/, webm_file * export_videofile /*= 0*/, vpx_config * vpx /*= 0*/) // default values are given in global.h
 {
     // If it's not replay mode, this code start to write information into replay file
     if (net->gametype != GAME_TYPE_REPLAY)
@@ -2662,6 +2663,23 @@ void gameloop()
             CHANGE = 1;
         }
         update_visibility();
+        
+        if (net->gametype == GAME_TYPE_REPLAY && exporting_replay){
+            // save this replay frame to the video file
+            
+            // save screen as a buffer of yv12 pixels
+            acquire_screen ();
+            rgb__to__yv12 (screen, vpx->raw_yv12.planes[0], vpx->width, vpx->height);
+            release_screen ();
+            
+            // encode yv12 buffer with libvpx
+            unsigned long data_length = 0;
+            bool is_keyframe = false;
+            unsigned char * encoded_frame = vpx_encode_frame (&vpx->raw_yv12, &data_length, &is_keyframe);
+            
+            // write the encoded frame to file
+            webm_write_frame (export_videofile, encoded_frame, data_length, vpx->frame_cnt - 1);
+        }        
     }
 
     FS_MusicPlay(NULL);
@@ -2856,7 +2874,7 @@ void start_exportreplay ()
 {
     /* It fixes existing problem with crash when game is loaded after some other 
     game have been played before. I don't know how to fix it in other way.*/
-    /* TBD
+
     win = 0; loss = 0; 
 
     HOST = 0;
@@ -2864,8 +2882,8 @@ void start_exportreplay ()
 
     install_timers(speed_unit, speed_bullet, speed_mapscroll);
 
-    */
 
+    
     reset_video();
     clear_to_color(screen, COLOR_BLACK1);
 
@@ -2874,10 +2892,10 @@ void start_exportreplay ()
     
     // choose replay file to load
     
-    std::string load_filename = gui_file_select(SCREEN_W / 2, SCREEN_H / 2, 
+    std::string replay_filename = gui_file_select(SCREEN_W / 2, SCREEN_H / 2, 
         _("Load a replay for export (*.replay files)"), F("$(home)"), "replay");
         
-    if (load_filename.empty()) {
+    if (replay_filename.empty()) {
         alert( "", _("No saved replays found!"), "", _("OK"), NULL, 0, 0);
         return;
     }
@@ -2887,18 +2905,30 @@ void start_exportreplay ()
     // TODO: add a way for the gui file select dialog edit box to be filled with a preset value
 
     std::string export_filename = gui_file_select(SCREEN_W / 2, SCREEN_H / 2, 
-        _("Save exported replay to file (*.webm file)"), F("$(home)"), "webm", true);
+        _("Save replay to video file (*.webm file)"), F("$(home)"), "webm", true);
 
-    if (!export_filename.empty ()) {
-        printf ("Export replay as: %s\n", export_filename.c_str ());
+    if (export_filename.empty ()) {
+        alert( "", _("Replay-export aborted"), "", _("OK"), NULL, 0, 0);
+        return;
     }
     
+    printf ("Saving replay to video file: %s\n", export_filename.c_str ());
     
-    /*
-    if (!loadreplay(filename.c_str())) {
+    
+
+    if (!loadreplay(replay_filename.c_str())) {
         alert( "", _("Replay is invalid!"), _("(Probably it was saved by incompatible version)."), _("OK"), NULL, 0, 0);
         return;
     }
+    
+    FILE * replay_video_file = fopen (export_filename.c_str (), "wb");
+    if (!replay_video_file) {
+        char file_open_errormsg[2000]; *file_open_errormsg = 0;
+        snprintf (file_open_errormsg, 2000, _("Unable to open '%s' for writing!"), export_filename.c_str ());
+        alert( "", file_open_errormsg, "", _("OK"), NULL, 0, 0);
+        return;
+    }
+    
     
     battle_report( "# %s: %d\n", _("START REPLAY"), turn );
 
@@ -2909,9 +2939,16 @@ void start_exportreplay ()
     MODE = WATCH;
     sel_man = NULL;
 
-    gameloop();
+    
+    vpx_config * vpx = init_vpx_encoder (800, 600);
+    webm_file * replay_exportfile = webm_open_file (replay_video_file, 800, 600, 24);
+    
+    gameloop (true, replay_exportfile, vpx);
     closegame();
-    */
+    
+    fclose (webm_close_file (replay_exportfile));
+    shutdown_vpx_encoder ();
+
 }
 
 

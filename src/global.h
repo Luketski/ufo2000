@@ -383,8 +383,11 @@ extern int         g_server_autologin;
 
 extern std::string g_default_weaponset;
 
+#include "vpx_encoding.h"
+#include "webm_writer.h"
+
 int initgame();
-void gameloop();
+void gameloop (bool exporting_replay = false, webm_file * export_videofile = 0, vpx_config * vpx = 0);
 void closegame();
 
 void geoscape();
