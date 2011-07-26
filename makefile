@@ -119,6 +119,7 @@ SRCS = bullet.cpp cell.cpp config.cpp connect.cpp crc32.cpp           \
        fpasprite.cpp gui.cpp                                          \
        sound.cpp spk.cpp stats.cpp terrapck.cpp text.cpp units.cpp    \
        video.cpp wind.cpp geoscape.cpp zfstream.cpp script_api.cpp    \
+       video_conversion.cpp vpx_encoding.cpp webm_writer.cpp          \
                                                                       \
        $(SRCS_LUALIB)                                                 \
        $(SRCS_FDLIBM)                                                 \
