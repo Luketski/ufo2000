@@ -2940,8 +2940,9 @@ void start_exportreplay ()
     sel_man = NULL;
 
     
-    vpx_config * vpx = init_vpx_encoder (800, 600);
-    webm_file * replay_exportfile = webm_open_file (replay_video_file, 800, 600, 24);
+    int replay_export_fps = (speed_unit > speed_bullet ? speed_unit : speed_bullet);
+    vpx_config * vpx = init_vpx_encoder (SCREEN_W, SCREEN_H);
+    webm_file * replay_exportfile = webm_open_file (replay_video_file, SCREEN_W, SCREEN_H, replay_export_fps);
     
     gameloop (true, replay_exportfile, vpx);
     closegame();
