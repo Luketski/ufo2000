@@ -387,7 +387,7 @@ extern std::string g_default_weaponset;
 #include "webm_writer.h"
 
 int initgame();
-void gameloop (bool exporting_replay = false, webm_file * export_videofile = 0, vpx_config * vpx = 0);
+void gameloop (bool exporting_replay = false, webm_file * export_videofile = 0, vpx_config * vpx = 0, int replay_export_fps = 0);
 void closegame();
 
 void geoscape();

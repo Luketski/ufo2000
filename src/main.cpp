@@ -197,10 +197,13 @@ int mapscroll       = 10;
 int mouse_sens      = 14;
 int replaydelay     = 2;
 
+static int bullet_current_speed = 0;
+static int unit_current_speed = 0;
+
 void install_timers(int _speed_unit, int _speed_bullet, int _speed_mapscroll)
 {
-    install_int_ex(timer_handler, BPS_TO_TIMER(_speed_unit));     //ticks each second
-    install_int_ex(timer_handler2, BPS_TO_TIMER(_speed_bullet * 2));     //ticks each second
+    install_int_ex(timer_handler, BPS_TO_TIMER(unit_current_speed = _speed_unit));     //ticks each second
+    install_int_ex(timer_handler2, BPS_TO_TIMER(bullet_current_speed = _speed_bullet * 2));     //ticks each second
     install_int_ex(timer_handler4, BPS_TO_TIMER(_speed_mapscroll));     //ticks each second
     install_int_ex(timer_1s, BPS_TO_TIMER(1));     //ticks each second
     install_int_ex(timer_replay, BPS_TO_TIMER(1));
@@ -405,11 +408,12 @@ class consoleBuf : public std::streambuf {
 
 protected:
     virtual int overflow(int c) {
-        if (doCout)
+        if (doCout) {
             if (c == 10)
                 std::cout<<std::endl;
             else
                 std::cout<<(static_cast<char>(c));
+        }
         if (c == 10) {
             if (m_print_win) {
                 curline.append("\n");
@@ -2167,7 +2171,7 @@ void view_level_down()
 /**
  * Main loop of the tactical part of the game
  */
-void gameloop (bool exporting_replay /*= false*/, webm_file * export_videofile /*= 0*/, vpx_config * vpx /*= 0*/) // default values are given in global.h
+void gameloop (bool exporting_replay /*= false*/, webm_file * export_videofile /*= 0*/, vpx_config * vpx /*= 0*/, int replay_export_fps /* = 0*/) // default values are given in global.h
 {
     // If it's not replay mode, this code start to write information into replay file
     if (net->gametype != GAME_TYPE_REPLAY)
@@ -2216,6 +2220,19 @@ void gameloop (bool exporting_replay /*= false*/, webm_file * export_videofile /
 
     g_pause = 0;
 
+    // this is used for the replay export
+    double n_flies_remaining = 0;
+    double n_moves_remaining = 0;
+    double fly_per_frame = 0;
+    double move_per_frame = 0;
+    int frames_since_last_notice = replay_export_fps;
+    int frames_since_last_net_check = replay_export_fps;
+    if (exporting_replay)
+    {
+        fly_per_frame = (double)( ((double)bullet_current_speed / (double)replay_export_fps) );
+        move_per_frame = (double)( ((double)unit_current_speed / (double)replay_export_fps) );
+    }
+    
     while (!DONE) {
 
         rest(1); // Don't eat all CPU resources
@@ -2230,10 +2247,16 @@ void gameloop (bool exporting_replay /*= false*/, webm_file * export_videofile /
         g_console->redraw(screen, 0, SCREEN2H);
 
         if (net->gametype == GAME_TYPE_REPLAY) {
-            if (REPLAYIT >= replaydelay) {
+            int do_net_check = (exporting_replay ? ((++frames_since_last_net_check >= replay_export_fps) ? 1 : 0) : (REPLAYIT >= replaydelay));
+            if (do_net_check) {
                 if (replaydelay != - 1)
                     net->check();
                 REPLAYIT = 0;
+                
+                if (exporting_replay)
+                {
+                    frames_since_last_net_check = 0;
+                }
             }
         } else {
             net->check();
@@ -2246,13 +2269,20 @@ void gameloop (bool exporting_replay /*= false*/, webm_file * export_videofile /
 
         if (win || loss) break;
 
-        if (NOTICE) {
+        // NOTICE increases once every second
+        int do_notice = (exporting_replay ? (++frames_since_last_notice >= replay_export_fps) : NOTICE);
+        if (do_notice) {
             if (NOTICEdemon) {
                 net->send_notice();
 //              g_console->printf(COLOR_SYS_INFO, "%d", NOTICEremote);
             }
             NOTICEremote++;
             NOTICE = 0;
+            
+            if (exporting_replay)
+            {
+                frames_since_last_notice = 0;
+            }
         }
 
         if (CHANGE) {
@@ -2264,14 +2294,49 @@ void gameloop (bool exporting_replay /*= false*/, webm_file * export_videofile /
             FLYIT = 1;
             MOVEIT = 1;
         }
+        
+        if (exporting_replay)
+        {
+            FLYIT = 0;
+            MOVEIT = 0;
+            
+            n_flies_remaining += fly_per_frame;
+            n_moves_remaining += move_per_frame;
+        }
+        
 
-        while (FLYIT > 0 && !g_pause ) {
+        int nflies;
+        if (exporting_replay)
+        {
+            nflies = (int)n_flies_remaining;
+        }
+        else
+        {
+            nflies = FLYIT;
+        }
+        FLYIT -= nflies;
+        while (nflies > 0 && !g_pause ) {
             platoon_local->bullmove();     //!!!! bull of dead?
             platoon_remote->bullmove();
-            FLYIT--;
+            nflies--;
+            
+            if (exporting_replay)
+            {
+                n_flies_remaining--;
+            }
         }
 
-        while (MOVEIT > 0 && !g_pause ) {
+        int nmoves;
+        if (exporting_replay)
+        {
+            nmoves = (int)n_moves_remaining;
+        }
+        else
+        {
+            nmoves = MOVEIT;
+        }
+        MOVEIT -= nmoves;
+        while (nmoves > 0 && !g_pause ) {
             if (FLAGS & F_CLEARSEEN)
                 g_map->clearseen();
 
@@ -2285,7 +2350,12 @@ void gameloop (bool exporting_replay /*= false*/, webm_file * export_videofile /
             select_y = (select_y + 1) % 6;
             CHANGE = 1;
 
-            MOVEIT--;
+            nmoves--;
+
+            if (exporting_replay)
+            {
+                n_moves_remaining--;
+            }
         }
 
         if (CHANGE) {
@@ -2940,11 +3010,11 @@ void start_exportreplay ()
     sel_man = NULL;
 
     
-    int replay_export_fps = (speed_unit > speed_bullet ? speed_unit : speed_bullet);
+    int replay_export_fps = 30;
     vpx_config * vpx = init_vpx_encoder (SCREEN_W, SCREEN_H);
     webm_file * replay_exportfile = webm_open_file (replay_video_file, SCREEN_W, SCREEN_H, replay_export_fps);
     
-    gameloop (true, replay_exportfile, vpx);
+    gameloop (true, replay_exportfile, vpx, replay_export_fps);
     closegame();
     
     fclose (webm_close_file (replay_exportfile));

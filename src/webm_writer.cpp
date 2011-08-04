@@ -23,9 +23,15 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include <string>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
+
 
 
 #include "webm_writer.h"
+
+
+#define APP_NAME_TO_EMBED_IN_WEBM_FILES "UFO2000 | (http://ufo2000.sf.net)"
+
 
 
 //#define DEBUG 1
@@ -807,6 +813,44 @@ void ebml_setdata_plain_uint (ebml_element * elem, largeval num)
 }
 
 
+
+/**
+*
+*   stores a 32 bit float in big endian byte order as the element's data
+*
+*   FIXME: this function needs a rewrite
+**/
+static void ebml_setdata_float32 (ebml_element * elem, float num)
+{
+    int length = 4; 
+    if (!elem->data)
+    {   // data is not set
+        elem->data = (byte *)malloc (length);
+        if (!elem->data)
+        {
+            printf ("ebml_setdata_float32: was unable to allocate data for ebml_element (%d) bytes\n", length);
+            return;
+        }
+    }
+    else
+    {   // data already set, need realloc
+        void * newp = realloc (elem->data, length);
+        if (!newp)
+        {
+            printf ("ebml_setdata_float32: was unable to re-allocate data for ebml_element (%d) bytes\n", length);
+            return;
+        }
+        elem->data = newp;
+    }
+    for (int i = 0, imax = length; i < imax; i++)
+    {
+        *(((unsigned char *)elem->data) + i) = *(((unsigned char*)&num) + i);
+    }
+    elem->data_size = length;
+}
+
+
+
 /**
 *
 *	this function may never be required
@@ -1147,6 +1191,20 @@ webm_file * webm_open_file (FILE * file, int video_width, int video_height, int 
     
     ebml_element * seekhead = ebml_add_child (segment, (byte *)WEBM_ID_SeekHead);
     ebml_element * info = ebml_add_child (segment, (byte *)WEBM_ID_Info);
+    
+            ebml_element * timecodescale = ebml_add_child (info, (byte *)WEBM_ID_TimecodeScale);
+                ebml_setdata_plain_uint (timecodescale, 1000000); // Timecode scale in nanoseconds (1.000.000 means all timecodes in the segment are expressed in milliseconds).
+                
+            // FIXME: add WEBM_ID_Duration, and other Info fields here
+
+            ebml_element * muxingapp = ebml_add_child (info, (byte *)WEBM_ID_MuxingApp);
+                ebml_setdata_string (muxingapp, (byte *)APP_NAME_TO_EMBED_IN_WEBM_FILES);
+            ebml_element * writingapp = ebml_add_child (info, (byte *)WEBM_ID_WritingApp);
+                ebml_setdata_string (writingapp, (byte *)APP_NAME_TO_EMBED_IN_WEBM_FILES);
+
+            
+                
+    
     ebml_element * tracks = ebml_add_child (segment, (byte *)WEBM_ID_Tracks);
 
         // 1 trackentry for video
@@ -1160,8 +1218,9 @@ webm_file * webm_open_file (FILE * file, int video_width, int video_height, int 
             ebml_element * tracktype = ebml_add_child (trackentry, (byte *)WEBM_ID_TrackType);
                 ebml_setdata_string (tracktype, (byte *)"\x01"); // video
             ebml_element * defaultdur = ebml_add_child (trackentry, (byte *)WEBM_ID_DefaultDuration);
-                ebml_setdata_string (defaultdur, (byte *)"\x02\x7c\x6b\x5a");	// framerate, a float value, this sets the duration of 1 frame (in nanoseconds)
-                                    // the value is 1.8544844412968288e-37
+                uint32_t frametime_nanosec = 1000000000 / framerate;
+                wf->frame_time_ms = frametime_nanosec / 1000000; // FIXME: store it as a float value to avoid precision loss
+                ebml_setdata_plain_uint (defaultdur, frametime_nanosec); // framerate, an uint value, this sets the duration of 1 frame (in nanoseconds)
             ebml_element * tracktcs = ebml_add_child (trackentry, (byte *)WEBM_ID_TrackTimecodeScale);
                 ebml_setdata_stringn (tracktcs, (byte *)"\x3f\x80\x00\x00", 4);	// speed scaling, a float value, is 1.0
             ebml_element * codecid = ebml_add_child (trackentry, (byte *)WEBM_ID_CodecID);
@@ -1462,8 +1521,9 @@ void webm_write_frame (webm_file * wf, byte * frame_data, largeval data_size, la
     block_header[0] = 0x81; // track number, as "vint",  FIXME: maybe this should be dynamic
             // "\x82" will be the audio track, when we have that. the audio SimpleBlocks are mixed together with the video blocks
     
-    uint16_t frametime = frame_num * 42; // 42 is some unit, maybe milliseconds
+    uint16_t frametime = frame_num * wf->frame_time_ms;
 
+    // store 'frametime' in big endian byte order
     block_header[1] = (byte)(frametime >> 8);
     block_header[2] = (byte)(frametime);
 

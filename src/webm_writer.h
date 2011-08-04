@@ -123,6 +123,7 @@ typedef struct
 	struct ebml_element * s;
 	
 	struct ebml_element * current_cluster;
+    int frame_time_ms;    
 } webm_file;
 
 
