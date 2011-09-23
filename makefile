@@ -55,6 +55,9 @@ ifndef CXX
 endif
 
 CFLAGS = -funsigned-char -Wall -Wno-deprecated-declarations -I src/lua -I src/luasqlite3 -DDEBUGMODE
+CFLAGS += -I src/replay_export/video_conversion 
+CFLAGS += -I src/replay_export/vpx_encoding 
+CFLAGS += -I src/replay_export/webm_writer 
 OBJDIR = obj
 NAME = ufo2000
 SERVER_NAME = ufo2000-srv
@@ -91,8 +94,14 @@ endif
 
 VPATH = src src/jpgalleg src/dumbogg src/exchndl src/agup src/lua \
         src/glyphkeeper src/loadpng src/sqlite src/luasqlite3 src/lua/lua \
-        src/scale2x src/fdlibm src/md5 src/fpasprite
+        src/scale2x src/fdlibm src/md5 src/fpasprite \
+        src/replay_export/video_conversion \
+        src/replay_export/vpx_encoding \
+        src/replay_export/webm_writer
 
+SRCS_REPLAY_EXPORT = video_conversion.cpp vpx_encoding.cpp            \
+                     webm_writer2.cpp webm_writer_ebml_element.cpp    \
+                     webm_writer_utils.cpp
 
 SRCS_LUALIB = lapi.c lauxlib.c lbaselib.c lcode.c ldblib.c ldebug.c   \
            ldo.c ldump.c lfunc.c lgc.c liolib.c llex.c lmathlib.c     \
@@ -119,10 +128,10 @@ SRCS = bullet.cpp cell.cpp config.cpp connect.cpp crc32.cpp           \
        fpasprite.cpp gui.cpp                                          \
        sound.cpp spk.cpp stats.cpp terrapck.cpp text.cpp units.cpp    \
        video.cpp wind.cpp geoscape.cpp zfstream.cpp script_api.cpp    \
-       video_conversion.cpp vpx_encoding.cpp webm_writer.cpp          \
                                                                       \
        $(SRCS_LUALIB)                                                 \
        $(SRCS_FDLIBM)                                                 \
+       $(SRCS_REPLAY_EXPORT)                                          \
        md5.c                                                          \
        aalg.c aase.c abeos.c abitmap.c agtk.c agup.c ans.c            \
        aphoton.c awin95.c decode.c encode.c io.c jpgalleg.c scale2x.c
@@ -151,7 +160,7 @@ else
 	CFLAGS += $(OPTFLAGS)
 endif
 
-LIBS = -lexpat
+LIBS = -lexpat -lvpx
 SERVER_LIBS = -lsqlite3
 
 ifndef no_ttf

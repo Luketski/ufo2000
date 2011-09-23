@@ -43,7 +43,9 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "mainmenu.h"
 #include "editor.h"
 #include "video.h"
-#include "video_conversion.h"
+#include "replay_export/video_conversion/video_conversion.h"
+#include "replay_export/vpx_encoding/vpx_encoding.h"
+#include "replay_export/webm_writer/webm_writer2.h"
 #include "keys.h"
 #include "crc32.h"
 #include "music.h"
@@ -2168,10 +2170,21 @@ void view_level_down()
     }
 }
 
+
+static void gameloop_static (bool exporting_replay = false, WEBM_FILE export_videofile = 0, vpx_config * vpx = 0, int replay_export_fps = 0);
+
+
 /**
  * Main loop of the tactical part of the game
  */
-void gameloop (bool exporting_replay /*= false*/, webm_file * export_videofile /*= 0*/, vpx_config * vpx /*= 0*/, int replay_export_fps /* = 0*/) // default values are given in global.h
+void gameloop ()
+{	// since gameloop() was visible in global.h, and it needed new parameters to be added (that require extra header files),
+	// it has been left as a stub and a new static version was created with the new parameters that received all the functionality
+	// the required headers are now only included in this file (instead of global.h)
+	gameloop_static ();
+}
+
+static void gameloop_static (bool exporting_replay /*= false*/, WEBM_FILE export_videofile /*= 0*/, vpx_config * vpx /*= 0*/, int replay_export_fps /* = 0*/) // default values are given just above
 {
     // If it's not replay mode, this code start to write information into replay file
     if (net->gametype != GAME_TYPE_REPLAY)
@@ -3012,9 +3025,9 @@ void start_exportreplay ()
     
     int replay_export_fps = 30;
     vpx_config * vpx = init_vpx_encoder (SCREEN_W, SCREEN_H);
-    webm_file * replay_exportfile = webm_open_file (replay_video_file, SCREEN_W, SCREEN_H, replay_export_fps);
+    WEBM_FILE replay_exportfile = webm_open_file (replay_video_file, SCREEN_W, SCREEN_H, replay_export_fps);
     
-    gameloop (true, replay_exportfile, vpx, replay_export_fps);
+    gameloop_static (true, replay_exportfile, vpx, replay_export_fps);
     closegame();
     
     fclose (webm_close_file (replay_exportfile));
