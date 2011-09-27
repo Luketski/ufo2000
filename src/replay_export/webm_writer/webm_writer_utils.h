@@ -36,106 +36,106 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 enum WEBM_Element_ID // the constructor function WEBM_ID_Manager() must be synched with this enum
 {
-	// level 0
-	WEBM_ID_Void
-	, WEBM_ID_EBML_Header
-	, WEBM_ID_Segment
-	
-	// level 1 (EBML Header)
-	, WEBM_ID_EBML_Version
-	, WEBM_ID_EBML_ReadVersion
-	, WEBM_ID_EBML_MaxIDLength
-	, WEBM_ID_EBML_MaxSizeLength
-	, WEBM_ID_EBML_Doctype
-	, WEBM_ID_EBML_DoctypeVersion
-	, WEBM_ID_EBML_DoctypeReadVersion
-	
-	// level 1 (Segment)
-	, WEBM_ID_SeekHead
-	, WEBM_ID_Info
-	, WEBM_ID_Tracks
-	, WEBM_ID_Cues
-	, WEBM_ID_Cluster
+  // level 0
+  WEBM_ID_Void
+  , WEBM_ID_EBML_Header
+  , WEBM_ID_Segment
+  
+  // level 1 (EBML Header)
+  , WEBM_ID_EBML_Version
+  , WEBM_ID_EBML_ReadVersion
+  , WEBM_ID_EBML_MaxIDLength
+  , WEBM_ID_EBML_MaxSizeLength
+  , WEBM_ID_EBML_Doctype
+  , WEBM_ID_EBML_DoctypeVersion
+  , WEBM_ID_EBML_DoctypeReadVersion
+  
+  // level 1 (Segment)
+  , WEBM_ID_SeekHead
+  , WEBM_ID_Info
+  , WEBM_ID_Tracks
+  , WEBM_ID_Cues
+  , WEBM_ID_Cluster
 
-	// level 2 (Info)
-	, WEBM_ID_SegmentUID // this element is not present in the current webm spec (version 3)
-	, WEBM_ID_TimecodeScale
-	, WEBM_ID_Duration
-	, WEBM_ID_DateUTC
-	, WEBM_ID_MuxingApp
-	, WEBM_ID_WritingApp
+  // level 2 (Info)
+  , WEBM_ID_SegmentUID // this element is not present in the current webm spec (version 3)
+  , WEBM_ID_TimecodeScale
+  , WEBM_ID_Duration
+  , WEBM_ID_DateUTC
+  , WEBM_ID_MuxingApp
+  , WEBM_ID_WritingApp
 
-	// level 2 (SeekHead)
-	, WEBM_ID_Seek
+  // level 2 (SeekHead)
+  , WEBM_ID_Seek
 
-	// level 3 (Seek)
-	, WEBM_ID_SeekID
-	, WEBM_ID_SeekPosition
+  // level 3 (Seek)
+  , WEBM_ID_SeekID
+  , WEBM_ID_SeekPosition
 
-	// level 2 (Tracks)
-	, WEBM_ID_TrackEntry
+  // level 2 (Tracks)
+  , WEBM_ID_TrackEntry
 
-	// level 3 (TrackEntry)
-	, WEBM_ID_TrackNumber
-	, WEBM_ID_TrackUID
-	, WEBM_ID_TrackType
-	, WEBM_ID_DefaultDuration
-	, WEBM_ID_TrackTimecodeScale
-	, WEBM_ID_CodecID
-	, WEBM_ID_CodecName
-	, WEBM_ID_Video
-	, WEBM_ID_FlagEnabled
+  // level 3 (TrackEntry)
+  , WEBM_ID_TrackNumber
+  , WEBM_ID_TrackUID
+  , WEBM_ID_TrackType
+  , WEBM_ID_DefaultDuration
+  , WEBM_ID_TrackTimecodeScale
+  , WEBM_ID_CodecID
+  , WEBM_ID_CodecName
+  , WEBM_ID_Video
+  , WEBM_ID_FlagEnabled
 
-	// level 4 (Video)
-	, WEBM_ID_PixelWidth
-	, WEBM_ID_PixelHeight
+  // level 4 (Video)
+  , WEBM_ID_PixelWidth
+  , WEBM_ID_PixelHeight
 
-	// level 2 (Cues)
-	, WEBM_ID_CuePoint
+  // level 2 (Cues)
+  , WEBM_ID_CuePoint
 
-	// level 3 (CuePoint)
-	, WEBM_ID_CueTime
-	, WEBM_ID_CueTrackPositions
+  // level 3 (CuePoint)
+  , WEBM_ID_CueTime
+  , WEBM_ID_CueTrackPositions
 
-	// level 4 (CueTrackPositions)
-	, WEBM_ID_CueTrack
-	, WEBM_ID_CueClusterPosition
-	, WEBM_ID_CueBlockNumber
+  // level 4 (CueTrackPositions)
+  , WEBM_ID_CueTrack
+  , WEBM_ID_CueClusterPosition
+  , WEBM_ID_CueBlockNumber
 
-	// level 2 (Cluster)
-	, WEBM_ID_TimeCode
-	, WEBM_ID_Position
-	, WEBM_ID_SimpleBlock
+  // level 2 (Cluster)
+  , WEBM_ID_TimeCode
+  , WEBM_ID_Position
+  , WEBM_ID_SimpleBlock
 };
 
 
 class WEBM_ID
 {
-	public:
-		WEBM_Element_ID id;
-		const char * signature;
-		int siglen;
-		const char * name;
-		
-		WEBM_ID (WEBM_Element_ID _id, const char * _signature, const char * _name);
+  public:
+    WEBM_Element_ID id;
+    const char * signature;
+    int siglen;
+    const char * name;
+    
+    WEBM_ID (WEBM_Element_ID _id, const char * _signature, const char * _name);
 };
 
 class WEBM_ID_Manager
 {
-	protected:
-		WEBM_ID ** ids;
-		int nids;
+  protected:
+    WEBM_ID ** ids;
+    int nids;
 
-		void Set_ID (WEBM_Element_ID id, const char * signature, const char * name);
+    void Set_ID (WEBM_Element_ID id, const char * signature, const char * name);
 
-	public:
-		
-		WEBM_ID_Manager ();
-		const char * Get_ID_Signature (WEBM_Element_ID id);
-		const char * Get_ID_Name (WEBM_Element_ID id);
-		WEBM_Element_ID Signature_2_ID (char * signature);
-		int Get_Signature_Length (WEBM_Element_ID id);
-		~WEBM_ID_Manager ();
+  public:
+    
+    WEBM_ID_Manager ();
+    const char * Get_ID_Signature (WEBM_Element_ID id);
+    const char * Get_ID_Name (WEBM_Element_ID id);
+    WEBM_Element_ID Signature_2_ID (char * signature);
+    int Get_Signature_Length (WEBM_Element_ID id);
+    ~WEBM_ID_Manager ();
 };
 
 
