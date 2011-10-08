@@ -2245,6 +2245,7 @@ static void gameloop_static (bool exporting_replay /*= false*/, WEBM_FILE export
         fly_per_frame = (double)( ((double)bullet_current_speed / (double)replay_export_fps) );
         move_per_frame = (double)( ((double)unit_current_speed / (double)replay_export_fps) );
     }
+    static bool replay_export_force_keyframe = false;
     
     while (!DONE) {
 
@@ -2758,10 +2759,13 @@ static void gameloop_static (bool exporting_replay /*= false*/, WEBM_FILE export
             // encode yv12 buffer with libvpx
             unsigned long data_length = 0;
             bool is_keyframe = false;
-            unsigned char * encoded_frame = vpx_encode_frame (&vpx->raw_yv12, &data_length, &is_keyframe);
+            unsigned char * encoded_frame = vpx_encode_frame (&vpx->raw_yv12, &data_length, &is_keyframe, replay_export_force_keyframe);
             
             // write the encoded frame to file
-            webm_write_frame (export_videofile, encoded_frame, data_length, vpx->frame_cnt - 1);
+            webm_write_frame (export_videofile, encoded_frame, data_length, vpx->frame_cnt - 1, is_keyframe);
+            
+            // this value will be used for the next frame
+            replay_export_force_keyframe = webm_should_next_frame_be_a_keyframe (export_videofile);
         }        
     }
 

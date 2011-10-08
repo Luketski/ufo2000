@@ -66,16 +66,17 @@ class WEBM_Cluster : public EBML_Element
     largeval first_frame_time_ms; // absolute time of first frame
     largeval frame_data_size; // size of frames in this cluster sofar
     largeval cluster_total_time_ms;
+    largeval debug_cluster_number;
     EBML_Element * cluster_position;
     EBML_Element * cues;
     
     int frame_time_ms;
     
   public:
-    WEBM_Cluster (largeval _first_frame_num, largeval _first_frame_time_ms, EBML_Element * _cues, int _frame_time_ms); // _first_frame_num is the frame number of the first frame in this cluster
+    WEBM_Cluster (largeval _first_frame_num, largeval _first_frame_time_ms, EBML_Element * _cues, int _frame_time_ms, int _debug_cluster_number); // _first_frame_num is the frame number of the first frame in this cluster
     bool Is_Full (); // cluster time has reached the limit
     largeval Get_First_Frame_Num (); // frame number of the first frame in this cluster
-    void Add_Frame (byte * frame_data, largeval data_size, largeval frame_num, uint16_t frametime);
+    void Add_Frame (byte * frame_data, largeval data_size, largeval frame_num, uint16_t frametime, bool is_keyframe);
     largeval Get_Cluster_Position ();
     void Set_Cluster_Position (largeval);
     uint16_t Get_Frametime (largeval frame_num);
@@ -123,7 +124,8 @@ class WEBM_File
     ~WEBM_File ();
     
     FILE * Get_FILE ();		
-    void Write_Frame (byte * frame_data, largeval data_size, largeval frame_num);
+    void Write_Frame (byte * frame_data, largeval data_size, largeval frame_num, bool is_keyframe);
+    WEBM_Cluster * Get_Current_Cluster ();
 };
 
 
@@ -139,14 +141,14 @@ class WEBM_Frame : public EBML_Element
     EBML_Element * cue_cluster_position; // position of the cluster, this will be set by the WEBM_File destructor when writing it out to disk, can be obtained by Get_CueClusterPosition ()
     
     byte * Create_Block_Header ();
-    void Write_Block_Header (byte * frame_data_header_location, uint16_t frametime);
+    void Write_Block_Header (byte * frame_data_header_location, uint16_t frametime, bool is_keyframe);
   public:
-    WEBM_Frame (byte * frame_data, largeval data_size, largeval frame_num, uint16_t frametime, EBML_Element * _cue_cluster_position);
+    WEBM_Frame (byte * frame_data, largeval data_size, largeval frame_num, uint16_t frametime, EBML_Element * _cue_cluster_position, int debug_cluster_number, bool is_keyframe);
     EBML_Element * Get_CueClusterPosition ();
 };
 
 
-WEBM_Frame::WEBM_Frame (byte * frame_data, largeval data_size, largeval frame_num, uint16_t frametime, EBML_Element * _cue_cluster_position)
+WEBM_Frame::WEBM_Frame (byte * frame_data, largeval data_size, largeval frame_num, uint16_t frametime, EBML_Element * _cue_cluster_position, int debug_cluster_number, bool is_keyframe)
   : EBML_Element (WEBM_ID_SimpleBlock)
 {
   // save the reference to the cuetrackposition that refers to this frame - because the exact position will be known and written only at file close time
@@ -154,13 +156,15 @@ WEBM_Frame::WEBM_Frame (byte * frame_data, largeval data_size, largeval frame_nu
   
   // store the frame data, leaving room for the block header
   Set_Data_StringN ((char *)frame_data, data_size, BLOCK_HEADER_SIZE);
+
+  //fprintf (stdout, "WEBM_Frame::WEBM_Frame: frame %d of cluster %d is %s\n", frame_num, debug_cluster_number, is_keyframe ? "*** a KEYFRAME" : "an interframe");
   
   // the block header becomes part of the data
-  Write_Block_Header (Get_Data (), frametime);
+  Write_Block_Header (Get_Data (), frametime, is_keyframe);
 }
 
 
-void WEBM_Frame::Write_Block_Header (byte * frame_data_header_location, uint16_t frametime)
+void WEBM_Frame::Write_Block_Header (byte * frame_data_header_location, uint16_t frametime, bool is_keyframe)
 {
   // add block header (4 bytes) (1 byte = track number (vint), 2 bytes = block timecode (signed int16), 1 byte = flags)
   /*
@@ -191,7 +195,8 @@ void WEBM_Frame::Write_Block_Header (byte * frame_data_header_location, uint16_t
   block_header[1] = (byte)(frametime >> 8);
   block_header[2] = (byte)(frametime);
 
-  block_header[3] = 0; // flags. maybe this holds the "keyframe" flag too, but I'm not sure
+  // flags
+  block_header[3] = 0 | (is_keyframe ? 0x80 : 0);
 
   // prepend the block header
   //memcpy (frame_data_header_location, block_header, BLOCK_HEADER_SIZE);
@@ -208,13 +213,15 @@ EBML_Element * WEBM_Frame::Get_CueClusterPosition ()
 
 
 
-WEBM_Cluster::WEBM_Cluster (largeval _first_frame_num, largeval _first_frame_time_ms, EBML_Element * _cues, int _frame_time_ms)
+WEBM_Cluster::WEBM_Cluster (largeval _first_frame_num, largeval _first_frame_time_ms, EBML_Element * _cues, int _frame_time_ms, int _debug_cluster_number)
   : EBML_Element (WEBM_ID_Cluster)
 {
   frame_data_size = 0;
   first_frame_num = _first_frame_num;
   first_frame_time_ms = _first_frame_time_ms;
   cues = _cues;
+  
+  debug_cluster_number = _debug_cluster_number;
   
   frame_time_ms = _frame_time_ms;
   
@@ -245,7 +252,7 @@ largeval WEBM_Cluster::Get_First_Frame_Num ()
   return first_frame_num;
 }
 
-void WEBM_Cluster::Add_Frame (byte * frame_data, largeval data_size, largeval frame_num, uint16_t frametime)
+void WEBM_Cluster::Add_Frame (byte * frame_data, largeval data_size, largeval frame_num, uint16_t frametime, bool is_keyframe)
 {
   EBML_Element * cue_cluster_position = 0;
   if (!(frame_num % ADD_CUES_EVERY_NTH_FRAME)) {
@@ -292,7 +299,7 @@ void WEBM_Cluster::Add_Frame (byte * frame_data, largeval data_size, largeval fr
   }
   Add_Child
   (
-    new WEBM_Frame (frame_data, data_size, frame_num, frametime, cue_cluster_position)
+    new WEBM_Frame (frame_data, data_size, frame_num, frametime, cue_cluster_position, debug_cluster_number, is_keyframe)
   );
   cluster_total_time_ms = frametime;
 }
@@ -876,7 +883,7 @@ FILE * WEBM_File::Get_FILE ()
 }
 
 
-void WEBM_File::Write_Frame (byte * frame_data, largeval data_size, largeval frame_num)
+void WEBM_File::Write_Frame (byte * frame_data, largeval data_size, largeval frame_num, bool is_keyframe)
 {
   bool start_new_cluster = (!first_cluster) || current_cluster->Is_Full ();
   
@@ -891,7 +898,7 @@ void WEBM_File::Write_Frame (byte * frame_data, largeval data_size, largeval fra
   if (start_new_cluster) {
     if (!first_cluster) {
       // create the first cluster
-      current_cluster = first_cluster = new WEBM_Cluster (frame_num, total_frame_time_ms, cues, frame_time_ms);
+      current_cluster = first_cluster = new WEBM_Cluster (frame_num, total_frame_time_ms, cues, frame_time_ms, number_of_clusters);
       cues
         ->Add_After
         (
@@ -922,7 +929,7 @@ void WEBM_File::Write_Frame (byte * frame_data, largeval data_size, largeval fra
         ->Add_After
         (
           current_cluster =
-            (new WEBM_Cluster (frame_num, total_frame_time_ms, cues, frame_time_ms))
+            (new WEBM_Cluster (frame_num, total_frame_time_ms, cues, frame_time_ms, number_of_clusters))
         )
       ;
       number_of_clusters++;
@@ -932,7 +939,7 @@ void WEBM_File::Write_Frame (byte * frame_data, largeval data_size, largeval fra
     }
   }
   
-  current_cluster->Add_Frame (frame_data, data_size, frame_num, frametime);
+  current_cluster->Add_Frame (frame_data, data_size, frame_num, frametime, is_keyframe);
 
   if (start_new_cluster) {
     //fprintf (stdout, "start new cluster (cluster number %d, time ms %d)\n", number_of_clusters, frametime);
@@ -946,6 +953,13 @@ void WEBM_File::Write_Frame (byte * frame_data, largeval data_size, largeval fra
     //fflush (stdout);
     //fprintf (stdout, "\n\n\n\n");
   }
+}
+
+
+// this may return 0, if no frames have been written yet
+WEBM_Cluster * WEBM_File::Get_Current_Cluster ()
+{
+  return current_cluster;
 }
 
 
@@ -1019,18 +1033,37 @@ WEBM_FILE webm_open_file (FILE * file, int video_width, int video_height, int fr
 *
 **/
 
-void webm_write_frame (WEBM_FILE wf, byte * frame_data, largeval data_size, largeval frame_num)
+void webm_write_frame (WEBM_FILE wf, byte * frame_data, largeval data_size, largeval frame_num, bool is_keyframe)
 {
   //webm_start_time_measure ();
   //fprintf (stdout, "webm_got_here 3\n");
   //fflush (stdout);
-  ((WEBM_File *)wf)->Write_Frame (frame_data, data_size, frame_num);
+  ((WEBM_File *)wf)->Write_Frame (frame_data, data_size, frame_num, is_keyframe);
   
   //fprintf (stdout, "webm_got_here 4\n");
   //fflush (stdout);
-  char framenumstr [100];
-  sprintf (framenumstr, "FRAME %d", frame_num);
+  
+  //char framenumstr [100];
+  //sprintf (framenumstr, "FRAME %d %s", frame_num, is_keyframe ? "K" : "|");
   //webm_end_time_measure (framenumstr);
+}
+
+
+/**
+*
+*  queries whether next frame should be forced to become a keyframe (this is necessary for the first frame of a new cluster)
+*
+*  the result should be passed to the vpx_encode_frame() function
+*
+**/
+int webm_should_next_frame_be_a_keyframe (WEBM_FILE wf)
+{
+  WEBM_Cluster * current_cluster = ((WEBM_File *)wf)->Get_Current_Cluster ();
+  if (!current_cluster) {
+    // first frame in the video
+    return 1;
+  }
+  return current_cluster->Is_Full ();
 }
 
 

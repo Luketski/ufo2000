@@ -51,7 +51,7 @@ typedef struct
 
 vpx_config * init_vpx_encoder (int width, int height);
 void shutdown_vpx_encoder ();
-unsigned char * vpx_encode_frame (vpx_image_t * raw_yv12, unsigned long * data_length, bool * is_keyframe);
+unsigned char * vpx_encode_frame (vpx_image_t * raw_yv12, unsigned long * data_length, bool * is_keyframe, bool force_keyframe);
 
 
 

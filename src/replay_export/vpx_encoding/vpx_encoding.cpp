@@ -144,7 +144,7 @@ void shutdown_vpx_encoder ()
 * returns the frame data, and in the other params the data length and the keyframe flag
 *
 */
-unsigned char * vpx_encode_frame (vpx_image_t * raw_yv12, unsigned long * data_length, bool * is_keyframe)
+unsigned char * vpx_encode_frame (vpx_image_t * raw_yv12, unsigned long * data_length, bool * is_keyframe, bool force_keyframe)
 {
       // as a temporary solution, it will read from allegro's screen buffer directly
   //rgb__to__yv12 (/*raw_rgb,*/ vpx.raw_yv12.planes[0]);
@@ -155,7 +155,7 @@ unsigned char * vpx_encode_frame (vpx_image_t * raw_yv12, unsigned long * data_l
   vpx_codec_iter_t iter = NULL;
   const vpx_codec_cx_pkt_t *pkt;
 
-  if(vpx_codec_encode(&vpx.codec, raw_yv12, vpx.frame_cnt, 1, vpx.flags, VPX_DL_REALTIME)) {
+  if(vpx_codec_encode(&vpx.codec, raw_yv12, vpx.frame_cnt, 1, vpx.flags | (force_keyframe ? VPX_EFLAG_FORCE_KF : 0), VPX_DL_REALTIME)) {
     die_codec(&vpx.codec, "Failed to encode frame");
   }
   

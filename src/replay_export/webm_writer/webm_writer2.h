@@ -31,7 +31,8 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 WEBM_FILE webm_open_file (FILE * file, int video_width, int video_height, int framerate);
 FILE * webm_close_file (WEBM_FILE wf);
-void webm_write_frame (WEBM_FILE wf, byte * frame_data, largeval data_size, largeval frame_num);
+void webm_write_frame (WEBM_FILE wf, byte * frame_data, largeval data_size, largeval frame_num, bool is_keyframe);
+int webm_should_next_frame_be_a_keyframe (WEBM_FILE wf);
 
 
 #endif
