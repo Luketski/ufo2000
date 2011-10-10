@@ -139,7 +139,7 @@ EBML_Element * EBML_Element::Set_Data_String (char * data)
 }
 
 
-EBML_Element * EBML_Element::Set_Data_StringN (char * data, largeval length, largeval padding /*= 0*/)
+EBML_Element * EBML_Element::Set_Data_StringN (char * data, largeval length, largeval padding_before /**= 0**/, largeval padding_after /**= 0**/)
 {
   //fprintf (stdout, "%s (%x) (parent: %s, %x) -> Set_Data_StringN (length = %d, padding = %d)\n", webm_id_manager->Get_ID_Name (Get_ID ()), this, webm_id_manager->Get_ID_Name (Has_Parent () ? Get_Parent ()->Get_ID () : WEBM_ID_Void), parent, length, padding);
   //fflush (stdout);
@@ -150,13 +150,17 @@ EBML_Element * EBML_Element::Set_Data_StringN (char * data, largeval length, lar
   // element can't have both children and data at the same time
   ASSERT (!Has_Children ());
   
-  byte * data_pointer = (byte *)realloc (Get_Data (), padding + length);
+  byte * data_pointer = (byte *)realloc (Get_Data (), padding_before + length + padding_after);
   ASSERT (data_pointer);
   Set_Data (data_pointer);
   Set_Has_Data (1);
   
-  memcpy (data_pointer + padding, data, length);
-  Set_Data_Length (length);
+  memcpy (data_pointer + padding_before, data, length);
+  if (padding_after > 0)
+  {
+	  memset (data_pointer + padding_before + length, 0, padding_after);
+  }
+  Set_Data_Length (padding_before + length + padding_after);
 
   //fprintf (stdout, "webm_got_here 1-1-4 (%s, %x)\n", webm_id_manager->Get_ID_Name (Get_ID ()), this);
   //fflush (stdout);

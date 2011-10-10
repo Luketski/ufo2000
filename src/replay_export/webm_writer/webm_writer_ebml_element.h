@@ -70,7 +70,7 @@ class EBML_Element
     // these methods return the same element, so they can be chained
     EBML_Element (WEBM_Element_ID _id);
     EBML_Element * Set_Data_String (char * data);
-    EBML_Element * Set_Data_StringN (char * data, largeval length, largeval padding = 0); // padding is the amount of space added to the beginning of the data, and increases the data size by that much - the padding can be used for writing the block header of SimpleBlocks (Frames)
+    EBML_Element * Set_Data_StringN (char * data, largeval length, largeval padding_before = 0, largeval padding_after = 0); // padding_before is the amount of space added to the beginning of the data, and increases the data size by that much - the padding can be used for writing the block header of SimpleBlocks (Frames), padding_after adds padding at the end
     EBML_Element * Set_Data_Plain_Uint (largeval num);
     EBML_Element * Set_Data_Float (float num);
 
